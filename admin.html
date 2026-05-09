@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin — SportMap Paris</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0C0E13;color:#F2F2F7;font-family:system-ui,sans-serif;padding:20px}
+h1{font-size:20px;margin-bottom:16px;color:#FF3B30}
+.login{max-width:320px;margin:80px auto}
+.login input{width:100%;background:#161921;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#F2F2F7;font-size:14px;margin-bottom:10px;outline:none}
+.btn{background:#FF3B30;border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.card{background:#161921;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.card-info{flex:1}
+.name{font-size:15px;font-weight:600;margin-bottom:4px}
+.meta{font-size:12px;color:#8E8E93;line-height:1.6}
+.photo{width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0}
+.actions{display:flex;gap:8px;margin-top:10px}
+.approve{background:#30D158;border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.reject{background:rgba(255,59,48,.2);border:1px solid rgba(255,59,48,.3);border-radius:8px;padding:7px 14px;color:#FF6B6B;font-size:12px;font-weight:600;cursor:pointer}
+.empty{color:#8E8E93;text-align:center;padding:40px}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(155,89,182,.15);color:#C39BD3;border:1px solid rgba(155,89,182,.25);margin-right:4px}
+#loginForm,#adminPanel{display:none}
+</style>
+</head>
+<body>
+<div class="login" id="loginForm">
+  <h1>🗺 Admin SportMap</h1>
+  <input type="password" id="secretInput" placeholder="Mot de passe admin" onkeydown="if(event.key==='Enter')login()"/>
+  <button class="btn" onclick="login()">Connexion</button>
+</div>
+
+<div id="adminPanel">
+  <h1>🗺 Spots en attente</h1>
+  <div id="spotList"></div>
+</div>
+
+<script>
+let secret='';
+
+function login(){
+  secret=document.getElementById('secretInput').value.trim();
+  if(!secret) return;
+  document.getElementById('loginForm').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  loadSpots();
+}
+
+async function loadSpots(){
+  const res=await fetch('/api/admin/spots?secret='+encodeURIComponent(secret));
+  if(res.status===401){alert('Mauvais mot de passe');secret='';document.getElementById('loginForm').style.display='block';document.getElementById('adminPanel').style.display='none';return;}
+  const spots=await res.json();
+  const pending=spots.filter(s=>s.status==='pending');
+  const list=document.getElementById('spotList');
+  if(!pending.length){list.innerHTML='<div class="empty">Aucun spot en attente ✓</div>';return;}
+  list.innerHTML='';
+  pending.forEach(s=>{
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`
+      ${s.has_photo?`<img class="photo" src="/api/photo/${s.id}" onerror="this.style.display='none'"/>`:''}
+      <div class="card-info">
+        <div class="name">${s.name}</div>
+        <div class="meta">
+          <span class="badge">${s.type==='pro'?'⚡ Pro':'🏄 Fun'}</span>
+          <span class="badge">${s.price==='free'?'✓ Gratuit':'💳 Payant'}</span>
+          ${s.sport?`<span class="badge">${s.sport}</span>`:''}
+          <br>${s.addr||'Paris'}<br>
+          ${s.description||''}<br>
+          <span style="color:#555">${s.created_at}</span>
+        </div>
+        <div class="actions">
+          <button class="approve" onclick="moderate(${s.id},'approve',this)">✓ Approuver</button>
+          <button class="reject" onclick="moderate(${s.id},'reject',this)">✕ Rejeter</button>
+        </div>
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+async function moderate(id,action,btn){
+  btn.disabled=true; btn.textContent='...';
+  const res=await fetch('/api/admin/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action,secret})});
+  const data=await res.json();
+  if(data.success) loadSpots(); else alert('Erreur');
+}
+
+window.onload=()=>{document.getElementById('loginForm').style.display='block';}
+</script>
+</body>
+</html>

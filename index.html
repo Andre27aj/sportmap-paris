@@ -7,7 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -98,6 +101,14 @@ header{
 .btn-g{padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
 .btn-g:hover{background:rgba(255,255,255,.06)}
 
+/* FILTER SELECTS */
+.filter-select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer;margin-bottom:8px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.filter-select option{background:var(--surface)}
+.chip.on-fav{background:rgba(255,59,48,.15);border-color:rgba(255,59,48,.4);color:#FF6B6B}
+.loc-fab{position:absolute;right:10px;bottom:50px;z-index:500;width:36px;height:36px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;box-shadow:0 2px 10px rgba(0,0,0,.4);transition:background .15s}
+.loc-fab:hover{background:var(--surface2)}
+.btn-icon{width:40px;padding:11px 0;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.btn-icon:hover{background:rgba(255,255,255,.06)}
 /* ADD SPOT */
 .add-btn{background:rgba(155,89,182,.15);border:1px solid rgba(155,89,182,.35);border-radius:10px;padding:5px 11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#C39BD3;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
 .add-btn:hover{background:rgba(155,89,182,.25)}
@@ -244,6 +255,17 @@ header{
         <div class="chip" id="chip-free" onclick="toggle('free')">✓ Gratuit</div>
         <div class="chip" id="chip-paid" onclick="toggle('paid')">💳 Payant</div>
       </div>
+      <span class="fl">Favoris</span>
+      <div class="chips" style="margin-bottom:8px">
+        <div class="chip" id="chip-favs" onclick="toggleFavsFilter()">❤️ Mes favoris</div>
+      </div>
+      <span class="fl">Sport</span>
+      <select class="filter-select" id="sportSelect" onchange="setSport(this.value)"><option value="">Tous les sports</option></select>
+      <span class="fl">Arrondissement</span>
+      <select class="filter-select" id="arrSelect" onchange="setArr(this.value)">
+        <option value="0">Tous</option>
+        <option value="1">1er</option><option value="2">2e</option><option value="3">3e</option><option value="4">4e</option><option value="5">5e</option><option value="6">6e</option><option value="7">7e</option><option value="8">8e</option><option value="9">9e</option><option value="10">10e</option><option value="11">11e</option><option value="12">12e</option><option value="13">13e</option><option value="14">14e</option><option value="15">15e</option><option value="16">16e</option><option value="17">17e</option><option value="18">18e</option><option value="19">19e</option><option value="20">20e</option>
+      </select>
     </div>
     <div class="div"></div>
     <div class="rh" id="countLabel"><b>1049</b> lieux trouvés</div>
@@ -251,6 +273,7 @@ header{
   </div>
 
   <div id="map">
+    <button class="loc-fab" onclick="showMyLocation()" title="Ma position">📍</button>
     <button class="mob-toggle" id="mobToggle" onclick="toggleSidebar()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Liste</button>
     <div class="sheet" id="sheet">
       <div class="sh"></div>
@@ -266,6 +289,8 @@ header{
           S'y rendre
         </button>
         <button class="btn-g" id="btnSite" style="display:none" onclick="openWebsite()">🌐 Site</button>
+        <button class="btn-icon" id="favBtn" title="Favoris">🤍</button>
+        <button class="btn-icon" id="shareBtn" title="Partager"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
       </div>
     </div>
   </div>
@@ -280,7 +305,9 @@ let leafletMarkers = {};
 let markerLayer = null;
 let currentPage = 0;
 const PAGE = 50;
-let map;
+let map, clusterGroup;
+let communitySpots = [], communityMarkers = [];
+let sportFilter = '', arrFilter = 0, showFavsOnly = false;
 
 // ── Init map ──
 function initMap(){
@@ -292,7 +319,8 @@ function initMap(){
   }).addTo(map);
 
   L.control.zoom({position:'topright'}).addTo(map);
-  markerLayer = L.layerGroup().addTo(map);
+  clusterGroup = L.markerClusterGroup({maxClusterRadius:60,showCoverageOnHover:false,spiderfyOnMaxZoom:true,chunkedLoading:true});
+  map.addLayer(clusterGroup);
 }
 
 // ── Pin icons ──
@@ -315,11 +343,15 @@ function getFiltered(){
   const q = document.getElementById('searchInput').value.toLowerCase().trim();
   const anyType = !filters.pro && !filters.fun;
   const anyPrice = !filters.free && !filters.paid;
+  const favs = showFavsOnly ? getFavs() : null;
   return SPOTS.filter(s => {
     const mt = anyType||(filters.pro&&s.type==='pro')||(filters.fun&&s.type==='fun');
     const mp = anyPrice||(filters.free&&s.price==='free')||(filters.paid&&s.price==='paid');
     const mq = !q||s.name.toLowerCase().includes(q)||(s.sport||'').toLowerCase().includes(q)||(s.addr||'').toLowerCase().includes(q);
-    return mt && mp && mq;
+    const ms = !sportFilter || s.sport===sportFilter;
+    const ma = !arrFilter || extractArr(s.addr)===arrFilter;
+    const mf = !favs || favs.includes(String(s.id));
+    return mt && mp && mq && ms && ma && mf;
   });
 }
 
@@ -359,16 +391,19 @@ function render(resetPage){
   }
 
   // Markers
-  markerLayer.clearLayers();
+  clusterGroup.clearLayers();
   leafletMarkers = {};
   const visible = filtered.slice(0, 500);
   visible.forEach(s => {
     const isActive = activeSpot && activeSpot.id === s.id;
-    const m = L.marker([s.lat, s.lng], {icon: makeIcon(s.type, isActive)}).addTo(markerLayer);
+    const m = L.marker([s.lat, s.lng], {icon: makeIcon(s.type, isActive)});
     m.on('click', () => selectSpot(s));
     m.bindTooltip(s.name, {direction:'top', offset:[0,-8], className:''});
+    clusterGroup.addLayer(m);
     leafletMarkers[s.id] = m;
   });
+  communityMarkers.forEach(m => clusterGroup.addLayer(m));
+  renderCommunityList();
 }
 
 // ── Community spots ──
@@ -378,11 +413,16 @@ async function loadCommunitySpots(){
   try{
     const res=await fetch('/api/spots');
     if(!res.ok) return;
-    const spots=await res.json();
-    spots.forEach(s=>{
+    communitySpots=await res.json();
+    communityMarkers.forEach(m=>clusterGroup.removeLayer(m));
+    communityMarkers=[];
+    communitySpots.forEach(s=>{
       const icon=L.divIcon({className:'',html:`<div class="lpin lpin-community"></div>`,iconSize:[12,12],iconAnchor:[6,6]});
-      L.marker([s.lat,s.lng],{icon}).addTo(map).on('click',()=>selectCommunitySpot(s));
+      const m=L.marker([s.lat,s.lng],{icon}).on('click',()=>selectCommunitySpot(s));
+      communityMarkers.push(m);
+      clusterGroup.addLayer(m);
     });
+    renderCommunityList();
   }catch(e){}
 }
 
@@ -401,6 +441,9 @@ function selectCommunitySpot(s){
   document.getElementById('sheetMeta').innerHTML=meta;
   document.getElementById('btnSite').style.display='none';
   document.getElementById('sheet').classList.add('open');
+  updateURL(s.id,true); updateFavBtn(s.id,true);
+  document.getElementById('favBtn').onclick=()=>toggleFav(s.id,true);
+  document.getElementById('shareBtn').onclick=()=>shareSpot(s.id,true);
 }
 
 function startPlacing(){
@@ -519,10 +562,7 @@ async function submitSpot(){
     if(data.success){
       closeAddForm();
       loadCommunitySpots();
-      const t=document.createElement('div');
-      t.style.cssText='position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#30D158;color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(48,209,88,.4)';
-      t.textContent='Lieu ajouté, merci !';
-      document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+      showToast('Lieu envoyé ! En attente de validation ✓');
     } else {
       alert('Erreur : '+(data.error||'inconnue'));
       btn.disabled=false; btn.textContent='Publier';
@@ -548,6 +588,107 @@ function closeSidebar(){
   if(btn) btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Liste';
 }
 
+// ── Helpers ──
+function showToast(msg,color='#30D158'){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap`;
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+
+// ── User location ──
+let userLocMarker;
+function showMyLocation(){
+  if(!navigator.geolocation){showToast('Géolocalisation non supportée','#FF3B30');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const{latitude:lat,longitude:lng}=pos.coords;
+    if(userLocMarker) userLocMarker.remove();
+    userLocMarker=L.circleMarker([lat,lng],{radius:9,fillColor:'#0A84FF',color:'#fff',weight:2.5,fillOpacity:1}).addTo(map).bindTooltip('Ma position',{direction:'top'});
+    map.setView([lat,lng],16,{animate:true});
+  },()=>showToast('Position non disponible','#FF3B30'));
+}
+
+// ── Favorites ──
+function getFavs(){return JSON.parse(localStorage.getItem('sm_favs')||'[]');}
+function toggleFav(id,community){
+  const favs=getFavs(),key=(community?'c':'')+id;
+  const i=favs.indexOf(key); i>=0?favs.splice(i,1):favs.push(key);
+  localStorage.setItem('sm_favs',JSON.stringify(favs));
+  updateFavBtn(id,community);
+}
+function updateFavBtn(id,community){
+  const btn=document.getElementById('favBtn'); if(!btn) return;
+  btn.textContent=getFavs().includes((community?'c':'')+id)?'❤️':'🤍';
+}
+function toggleFavsFilter(){
+  showFavsOnly=!showFavsOnly;
+  const chip=document.getElementById('chip-favs');
+  showFavsOnly?chip.classList.add('on-fav'):chip.classList.remove('on-fav');
+  activeSpot=null;closeSheet();render(true);
+}
+
+// ── Share ──
+function shareSpot(id,community){
+  const url=location.origin+location.pathname+'?spot='+(community?'c':'')+id;
+  if(navigator.share) navigator.share({title:'SportMap Paris',url});
+  else navigator.clipboard.writeText(url).then(()=>showToast('Lien copié !')).catch(()=>{});
+}
+
+// ── Filters ──
+function extractArr(addr){
+  if(!addr) return 0;
+  const m=addr.match(/(\d{1,2})(e|er|ème|eme)?\s*arr/i);
+  return m?parseInt(m[1]):0;
+}
+function setArr(v){arrFilter=parseInt(v)||0;activeSpot=null;closeSheet();render(true);}
+function setSport(v){sportFilter=v;activeSpot=null;closeSheet();render(true);}
+
+// ── URL state ──
+function updateURL(spotId,community){
+  const url=new URL(location.href);
+  spotId?url.searchParams.set('spot',(community?'c':'')+spotId):url.searchParams.delete('spot');
+  history.replaceState(null,'',url);
+}
+function loadFromURL(){
+  const spot=new URLSearchParams(location.search).get('spot');
+  if(!spot) return;
+  if(spot.startsWith('c')){
+    const id=parseInt(spot.slice(1));
+    setTimeout(()=>{const s=communitySpots.find(x=>x.id===id);if(s)selectCommunitySpot(s);},700);
+  } else {
+    const s=SPOTS.find(x=>x.id===parseInt(spot));
+    if(s) setTimeout(()=>selectSpot(s),100);
+  }
+}
+
+// ── Community list ──
+function renderCommunityList(){
+  const list=document.getElementById('resultsList');
+  const old=document.getElementById('communitySection'); if(old) old.remove();
+  if(!communitySpots.length) return;
+  const q=document.getElementById('searchInput').value.toLowerCase().trim();
+  const anyType=!filters.pro&&!filters.fun, anyPrice=!filters.free&&!filters.paid;
+  const shown=communitySpots.filter(s=>{
+    const mt=anyType||(filters.pro&&s.type==='pro')||(filters.fun&&s.type==='fun');
+    const mp=anyPrice||(filters.free&&s.price==='free')||(filters.paid&&s.price==='paid');
+    const mq=!q||s.name.toLowerCase().includes(q)||(s.sport||'').toLowerCase().includes(q);
+    const ms=!sportFilter||s.sport===sportFilter;
+    const ma=!arrFilter||extractArr(s.addr||'')===arrFilter;
+    const mf=!showFavsOnly||getFavs().includes('c'+s.id);
+    return mt&&mp&&mq&&ms&&ma&&mf;
+  });
+  if(!shown.length) return;
+  const sec=document.createElement('div'); sec.id='communitySection';
+  const hd=document.createElement('div');
+  hd.style.cssText='padding:8px 4px 4px;font-size:10px;font-weight:600;letter-spacing:.08em;color:#C39BD3;text-transform:uppercase;margin-top:4px';
+  hd.textContent='✦ Communauté'; sec.appendChild(hd);
+  shown.forEach(s=>{
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`<div class="ct"><div class="cn">${s.name}</div><div class="cbs">${badgeHTML(s.type,s.price)}<span class="badge b-community" style="font-size:9px">✦</span></div></div><div class="cs">${s.sport||''}${s.addr?' · '+s.addr:''}</div>`;
+    d.addEventListener('click',()=>selectCommunitySpot(s)); sec.appendChild(d);
+  });
+  list.appendChild(sec);
+}
+
 // ── Select ──
 function selectSpot(s){
   closeSidebar();
@@ -569,12 +710,16 @@ function selectSpot(s){
   btnSite.dataset.url = s.website || '';
 
   document.getElementById('sheet').classList.add('open');
+  updateURL(s.id,false); updateFavBtn(s.id,false);
+  document.getElementById('favBtn').onclick=()=>toggleFav(s.id,false);
+  document.getElementById('shareBtn').onclick=()=>shareSpot(s.id,false);
   render(false);
 }
 
 function closeSheet(){
   document.getElementById('sheet').classList.remove('open');
   activeSpot = null;
+  updateURL(null);
   render(false);
 }
 
@@ -614,6 +759,9 @@ map.on('click',function(e){
 });
 render(true);
 loadCommunitySpots();
+// Populate sport select
+(()=>{const all=[...new Set(SPOTS.map(s=>s.sport).filter(Boolean))].sort();const sel=document.getElementById('sportSelect');all.forEach(sp=>{const o=document.createElement('option');o.value=sp;o.textContent=sp;sel.appendChild(o);});})();
+loadFromURL();
 </script>
 </body>
 </html>
