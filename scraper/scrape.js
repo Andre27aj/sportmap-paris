@@ -16,12 +16,12 @@ const OUT_FILE = join(__dir, 'spots_paris.json');
 
 const OVERPASS_URL = 'https://overpass.kumi.systems/api/interpreter';
 
-// Paris intra-muros bounding box
-const BBOX = '48.815573,2.224199,48.902145,2.469920';
+// Paris + petite couronne (92, 93, 94)
+const BBOX = '48.700,2.100,49.000,2.670';
 
-// Requête Overpass : tous les noeuds/ways/relations sportifs dans Paris
+// Requête Overpass étendue
 const QUERY = `
-[out:json][timeout:60];
+[out:json][timeout:90];
 (
   node["leisure"="pitch"](${BBOX});
   way["leisure"="pitch"](${BBOX});
@@ -32,6 +32,7 @@ const QUERY = `
   node["leisure"="swimming_pool"](${BBOX});
   way["leisure"="swimming_pool"](${BBOX});
   node["leisure"="fitness_station"](${BBOX});
+  way["leisure"="fitness_station"](${BBOX});
   node["leisure"="skate_park"](${BBOX});
   way["leisure"="skate_park"](${BBOX});
   node["leisure"="track"](${BBOX});
@@ -42,9 +43,24 @@ const QUERY = `
   way["leisure"="ice_rink"](${BBOX});
   node["leisure"="climbing"](${BBOX});
   way["leisure"="climbing"](${BBOX});
+  node["leisure"="dance"](${BBOX});
+  way["leisure"="dance"](${BBOX});
+  node["leisure"="martial_arts"](${BBOX});
+  way["leisure"="martial_arts"](${BBOX});
+  node["leisure"="boxing"](${BBOX});
+  way["leisure"="boxing"](${BBOX});
+  node["leisure"="archery"](${BBOX});
+  way["leisure"="archery"](${BBOX});
+  node["leisure"="disc_golf_course"](${BBOX});
+  node["leisure"="paddling_pool"](${BBOX});
   node["sport"](${BBOX});
   way["sport"](${BBOX});
   node["amenity"="swimming_pool"](${BBOX});
+  way["amenity"="swimming_pool"](${BBOX});
+  node["amenity"="gym"](${BBOX});
+  way["amenity"="gym"](${BBOX});
+  node["amenity"="dojo"](${BBOX});
+  way["amenity"="dojo"](${BBOX});
 );
 out center tags;
 `;
@@ -132,8 +148,8 @@ function parseSport(tags) {
 
 function parsePrice(tags) {
   if (tags.fee === 'no' || tags.access === 'yes') return 'free';
-  if (tags.fee === 'yes') return 'paying';
-  if (PAYING_LEISURE.has(tags.leisure)) return 'paying';
+  if (tags.fee === 'yes') return 'paid';
+  if (PAYING_LEISURE.has(tags.leisure)) return 'paid';
   if (FREE_LEISURE.has(tags.leisure)) return 'free';
   return 'free';
 }
@@ -202,6 +218,13 @@ async function main() {
     if (seen.has(key)) continue;
     seen.add(key);
 
+    const descParts = [];
+    if (tags.description)      descParts.push(tags.description);
+    if (tags.opening_hours)    descParts.push(`Horaires : ${tags.opening_hours}`);
+    if (tags.phone || tags['contact:phone']) descParts.push(`📞 ${tags.phone || tags['contact:phone']}`);
+    const website = tags.website || tags['contact:website'] || tags.url || '';
+    if (website) descParts.push(`Site : ${website}`);
+
     spots.push({
       name,
       lat:         coords.lat,
@@ -209,7 +232,7 @@ async function main() {
       type:        parseType(tags),
       price:       parsePrice(tags),
       sport:       parseSport(tags),
-      description: tags.description || '',
+      description: descParts.join(' · '),
       addr:        parseAddr(tags),
       status:      'approved',
     });

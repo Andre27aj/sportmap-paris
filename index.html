@@ -294,8 +294,6 @@ header{height:56px;flex-shrink:0;background:var(--sidebar);border-bottom:1px sol
           <div class="shm" id="sheetMeta"></div>
         </div>
         <div class="sheet-right">
-          <button class="btn-r" id="navBtn" onclick="navigateTo()">S'y rendre →</button>
-          <button class="btn-g" id="btnSite" style="display:none" onclick="openWebsite()">Site web</button>
           <div class="sheet-icons">
             <button class="btn-icon" id="favBtn" title="Favoris">♡</button>
             <button class="btn-icon" id="shareBtn" title="Partager">↑</button>
@@ -449,8 +447,7 @@ function render(resetPage){
   // Markers
   clusterGroup.clearLayers();
   leafletMarkers = {};
-  const visible = filtered.slice(0, 800);
-  visible.forEach(s => {
+  filtered.forEach(s => {
     const isActive = activeSpot && activeSpot.id === s.id;
     const m = L.marker([s.lat, s.lng], {icon: makeIcon(s.type, isActive)});
     m.on('click', () => selectSpot(s));
@@ -596,7 +593,8 @@ async function submitSpot(){
     const data=await res.json();
     if(data.success){
       closeAddForm();
-      showToast('Lieu envoyé ! En attente de validation ✓');
+      showToast('Lieu ajouté ✓');
+      await loadAllSpots();
     } else {
       alert('Erreur : '+(data.error||'inconnue'));
       btn.disabled=false; btn.textContent='Publier';
@@ -702,20 +700,16 @@ function selectSpot(s){
   document.getElementById('sheetName').textContent = s.name;
   document.getElementById('sheetBadges').innerHTML = badgeHTML(s.type, s.price);
 
+  function linkify(text){
+    return text.replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
   let meta = `<b>${s.addr||'Paris'}</b>`;
-  if(s.description) meta += `<br>${s.description}`;
-  if(s.opening_hours) meta += `<br>${s.opening_hours}`;
-  if(s.phone) meta += `<br>${s.phone}`;
-  if(s.website) meta += `<br><a href="${s.website}" target="_blank">${s.website}</a>`;
+  if(s.description) meta += `<br>${linkify(s.description)}`;
   if(s.has_photo) meta += `<br><img src="/api/photo/${s.id}" style="width:100%;margin-top:10px;object-fit:cover;max-height:180px">`;
   document.getElementById('sheetMeta').innerHTML = meta;
 
-  const btnSite = document.getElementById('btnSite');
-  btnSite.style.display = s.website ? 'block' : 'none';
-  btnSite.dataset.url = s.website || '';
-
   document.getElementById('sheet').classList.add('open');
-  const nb=document.getElementById('navBtn'); nb.dataset.lat=s.lat; nb.dataset.lng=s.lng;
   updateURL(s.id); updateFavBtn(s.id);
   document.getElementById('favBtn').onclick=()=>toggleFav(s.id);
   document.getElementById('shareBtn').onclick=()=>shareSpot(s.id);
@@ -727,17 +721,6 @@ function closeSheet(){
   activeSpot = null;
   updateURL(null);
   render(false);
-}
-
-function navigateTo(){
-  const btn=document.getElementById('navBtn');
-  const lat=btn.dataset.lat, lng=btn.dataset.lng;
-  if(!lat||!lng) return;
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,'_blank');
-}
-function openWebsite(){
-  const url = document.getElementById('btnSite').dataset.url;
-  if(url) window.open(url, '_blank');
 }
 
 // ── Filters ──

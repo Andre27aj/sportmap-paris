@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     const result = await env.DB.prepare(
-      "INSERT INTO spots (name, lat, lng, type, price, sport, description, addr, photo, has_photo, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+      "INSERT INTO spots (name, lat, lng, type, price, sport, description, addr, photo, has_photo, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')"
     ).bind(
       name, lat, lng,
       type || 'fun',
